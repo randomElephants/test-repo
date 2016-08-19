@@ -1,6 +1,9 @@
 <?php
-class MySQLDatabase {
-	
+//TODO: add the error handling
+//TODO: extract inventoru-specific functionality
+//TODO: add fuller comments
+//TODO: dependency injection?
+class MySQLDatabase {	
 	private $mysqli;
 	
 	private $dbHost;
@@ -44,33 +47,36 @@ class MySQLDatabase {
 		return $this->getResult($stmt);
 	}	
 	
+	//Will fail if "Inventory" table doesn't exist yet
 	public function getAllFromInventory() {
 		$stmt = $this->mysqli->prepare("SELECT make, model, price, quantity FROM inventory");
 		return $this->getResult($stmt);
 	}
 	
+	public function getMakes() {
+		$stmt = $this->mysqli->prepare("SELECT DISTINCT make FROM inventory");
+		return $this->getResult($stmt);
+	}
+	
+	public function insertInventoryEntry($make, $model, $price, $quantity) {
+		$stmt = $this->mysqli->prepare("INSERT INTO inventory (make, model, price, quantity) VALUES (?, ?, ?, ?)");
+ 		if ($stmt) {
+			$stmt->bind_param("ssdi", $make, $model, $price, $quantity);
+			return $stmt->execute();		
+ 			
+ 		} else {
+ 			echo "Could't prepare.";
+ 		}
+	}
+	
 	//TODO: make work! Don't forget to return something. Result class??
 	private function getResult($stmt) {
+		require_once('MySQLResult.php');
+		
 		$stmt->execute();
+		$result = new MySQLResult($stmt);	
 		
-		$num_fields = $stmt->field_count;
-		$field_names = array();
-		$meta = $stmt->result_metadata();
-		
-		for ($i=0; $i<$num_fields; $i++) {
-			$fieldName = $meta->fetch_field()->name;
-			$field_names[] = $fieldName;
-		}
-		
-		foreach ($field_names as $name) {
-			echo "<p>$name</p>";
-		}
-		
-		$stmt->bind_result($make, $model, $price, $quantity);
-		
-		while ($stmt->fetch()) {
-			echo "<p>$make, $model, $price, $quantity</p>";
-		}
+		return $result;
 	}
 //Bracket to close class
 }
